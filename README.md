@@ -18,7 +18,7 @@ You can install any package you want (as long as they don't rely on `webapp`) an
 # Development
 If you just run `meteor` inside of your project folder, it'll keep dying with `Exit code 0` until it realizes that your app is "crashing". By default, Meteor expects to be running a web application so it assumes your process will be long-running. However, you can tell Meteor to only run it once by using the `--once` flag, like so: `meteor --once`.
 
-# Accessing the Lambda Event object`
+# Accessing the Lambda Event object
 The `event` argument passed to the Lambda handler is appended to `process.argv`. When running in the Lambda environment, there are no arguments passed to the process, so the `event` will be the lone element in `argv`. So, you can access it like so in your `main` function:
 
 ```javascript
