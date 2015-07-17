@@ -9,7 +9,7 @@ Tested on a mac:
 4. `sudo chmod +x /usr/local/bin/lambdify`
 
 # Requirements
-Make sure you remove `meteor-platform` as a package dependency for your app and replace it with just `meteor` plus whichever packages you rely on. If you keep `meteor-platform`, or specifically `webapp`, your Lambda function will run forever and cost you tons of cash.
+Make sure you remove `meteor-platform` as a package dependency for your app and replace it with just `meteor` plus whichever packages you rely on. If you keep `meteor-platform`, or specifically `webapp`, your Lambda function will run forever (or at least until your timeout) and cost you tons of cash.
 
 Now, since your Meteor application no longer has `webapp`, it needs a new `main` function. In your server code, make sure you define a global `main` function that takes `argv` as its singular argument. The value that this function returns will be passed to Lambda's `context.succeed`, and any error that this function throws will be passed to Lambda's `context.fail`.
 
