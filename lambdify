@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+FUNCTION_NAME=${PWD##*/}
+printf ">> Uploading lambda function named $FUNCTION_NAME.\n"
+FUNCTIONS=`aws lambda list-functions`
+
+if [[ $FUNCTIONS != *"\"FunctionName\": \"$FUNCTION_NAME\""* ]]; then
+  printf ">> \033[0;31mYou have not yet created the Lambda function named $FUNCTION_NAME in the AWS console. Please create a function named $FUNCTION_NAME with runtime:\"nodejs\" and handler:\"exec.handler\" and re-run this script.\n\033[0m"
+  exit 1
+fi
+DIRNAME="/tmp/meteor_lambda_`date +%Y-%m-%d-%H-%M-%S`"
+mkdir $DIRNAME
+meteor build --architecture os.linux.x86_64 --directory $DIRNAME
+cd $DIRNAME/bundle
+cd programs
+printf ">> Removing web.browser assets...\n"
+rm -rf web.browser
+cd server
+printf ">> Running npm install in server...\n"
+npm install
+cd ../../
+printf ">> Adding exec wrapper...\n"
+echo "exports.handler=function(event,context){process.exit=function(result){context.succeed(result);};process.argv.push(event);try{require('./main');}catch(err){context.fail(err);}};" > exec.js
+ARCHIVE_NAME="${1:-lambda}"
+zip -r $ARCHIVE_NAME.zip . > /dev/null
+printf ">> Zip archive is at $DIRNAME/bundle/$ARCHIVE_NAME.zip\n"
+
+aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://$DIRNAME/bundle/$ARCHIVE_NAME.zip
+
+rm -rf $DIRNAME
+printf ">> \033[0;32mDone!\033[0m\n"
