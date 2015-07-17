@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-FUNCTION_NAME=${PWD##*/}
+DEFAULT_FUNCTION_NAME=${PWD##*/}
+FUNCTION_NAME="${1:-$DEFAULT_FUNCTION_NAME}"
 printf ">> Uploading lambda function named $FUNCTION_NAME.\n"
 FUNCTIONS=`aws lambda list-functions`
 
@@ -20,7 +21,7 @@ npm install
 cd ../../
 printf ">> Adding exec wrapper...\n"
 echo "exports.handler=function(event,context){process.exit=function(result){context.succeed(result);};process.argv.push(event);try{require('./main');}catch(err){context.fail(err);}};" > exec.js
-ARCHIVE_NAME="${1:-lambda}"
+ARCHIVE_NAME="lambda"
 zip -r $ARCHIVE_NAME.zip . > /dev/null
 printf ">> Zip archive is at $DIRNAME/bundle/$ARCHIVE_NAME.zip\n"
 

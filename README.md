@@ -33,9 +33,11 @@ main = function(argv) {
 ## Create the Lambda function in AWS
 This script will not create the Lambda function for you - this is intentional, because we don't want to make assumptions about the instance size, timeout, etc. When you create it, make sure you set the following options:
 
-1. Runtime: "nodejs"
-2. Handler: "exec.handler"
-3. Timeout: At least 4 seconds. From our testing, it takes around 3 seconds to boot the Meteor application and reach your `main`.
+1. **Runtime**: "nodejs"
+2. **Handler**: "exec.handler"
+3. **Timeout**: At least 4 seconds. From our testing, it takes around 3 seconds to boot the Meteor application and reach your `main`.
 
 ## Deploy your function
-Run `lambdify` inside of your project. This script assumes that you already have the `awscli` [installed](http://docs.aws.amazon.com/cli/latest/userguide/installing.html) AND authenticated on your system. It runs `aws lambda update-function-code` with the compiled and zipped code.
+Run `lambdify` inside of your project. If you do not provide an argument, it will assume that the Lambda function is named the same as the folder you are in. Otherwise, you can run `lambdify {function-name}`.
+
+This script assumes that you already have the `awscli` [installed](http://docs.aws.amazon.com/cli/latest/userguide/installing.html) AND authenticated on your system. It runs `aws lambda update-function-code` with the compiled and zipped code.
