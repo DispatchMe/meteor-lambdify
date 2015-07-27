@@ -1,0 +1,30 @@
+{
+  "name": "meteor-lambdify",
+  "version": "0.1.0",
+  "description": "Compile and upload a MeteorJS application to AWS Lambda",
+  "main": "./lambdify.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "lambdify": "lambdify.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DispatchMe/meteor-lambdify.git"
+  },
+  "author": {
+    "name": "Jason Raede",
+    "email": "jason@dispatch.me"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DispatchMe/meteor-lambdify/issues"
+  },
+  "homepage": "https://github.com/DispatchMe/meteor-lambdify#readme",
+  "dependencies": {
+    "colors": "^1.1.2",
+    "flags": "^0.1.3",
+    "shelljs": "^0.5.1"
+  }
+}
