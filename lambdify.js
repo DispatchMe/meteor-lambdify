@@ -79,15 +79,23 @@ exec('npm install');
 cd(tempDir + '/bundle');
 console.log('>> Adding exec wrapper with environment variables & settings');
 
-
-var code = "exports.handler=function(event,context){var originalExit=process.exit;process.exit=function(result){context.succeed(result);originalExit.call(process, 0);};process.on('uncaughtException',function(err){context.fail(err);originalExit.call(process, 1);});process.argv.push(event);";
+// We only want to call process.exit in debug mode. Lambda does this for us automatically and will whine
+// about process exiting before completing request.
+function exitCall(code) {
+  if (flags.get('debug')) {
+    return 'originalExit.call(process, ' + code.toString() + ');';
+  }
+  return '';
+}
+// 
+var code = "exports.handler=function(event,context){var originalExit=process.exit;process.exit=function(result){context.succeed(result);" + exitCall(0) + "};process.on('uncaughtException',function(err){console.log(err.stack);context.fail(err.message);" + exitCall(1) + "});process.argv.push(event);";
 
 // Add environment variables
 for (var k in ENV) {
   code += 'process.env["' + k + '"] = ' + JSON.stringify(ENV[k]) + ';';
 }
 
-code += "try{require('./main');}catch(err){context.fail(err);originalExit.call(process, 1);}};";
+code += "try{require('./main');}catch(err){console.log(err.stack);context.fail(err.message);" + exitCall(1) + "}};";
 fs.writeFileSync('exec.js', code);
 
 if (flags.get('debug')) {
