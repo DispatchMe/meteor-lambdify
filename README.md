@@ -52,7 +52,19 @@ Set an environment variable inside of your Lambda function (this works by dynami
 Similar to environment variables, but this will load a settings JSON file that you can specify to the `meteor` command with the `--settings` flag. This will read in the settings file and set it as the `METEOR_SETTINGS` environment variable. E.g. `--settings settings.development.json`
 
 #### No Upload (`--noupload`)
-Set this flag (no argument) to skip the uploading and just bundle your application in a zip archive. Useful for debugging.
+Set this flag (no argument) to skip the uploading and just bundle your application in a zip archive.
+
+#### Debug (`--debug`)
+This flag changes the behavior significantly. The application will be built inside of the current directory in a folder called `lambda-bundle`. It will not be zipped nor will it be uploaded to AWS. Additionally, there will be an additional file inside of the bundle called `debug.js` that you can use to run your Lambda function, with an optional argument for JSON event data.
+
+For example, this will execute your function passing `{"foo":"bar"}` as the event data:
+
+```
+$ lambdify --debug
+$ cd lambda-bundle/bundle
+$ echo "{\"foo\":\"bar\"}" > event.json
+$ node debug.js event.json
+```
 
 ### Example
 ```bash

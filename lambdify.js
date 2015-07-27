@@ -9,12 +9,15 @@ require('colors');
 flags.defineString('function', '', 'Name of the Lambda function');
 flags.defineMultiString('env', '', 'Environment variable to set in entry point. E.g. MONGO_URL');
 flags.defineString('settings', '', 'Settings file to parse and set as the METEOR_SETTINGS environment variable in the entry point. E.g. "settings.development.json"');
-
+flags.defineBoolean('debug', false, 'If set to true, this will build in the current directory without archiving or uploading. Use for testing your bundled application locally.');
 flags.defineBoolean('upload', true, 'Whether to upload the bundle to Lambda');
 
 flags.parse();
 
-var ENV = {};
+// Fake ROOT_URL just so Meteor won't crash if there isn't one.
+var ENV = {
+  ROOT_URL: 'http://lambda-host.aws.com'
+};
 
 if (flags.get('settings')) {
   var settings = fs.readFileSync(pwd() + '/' + flags.get('settings'));
@@ -30,10 +33,16 @@ if (envVars) {
     ENV[spl.shift()] = spl.join('=');
   });
 }
+var tempDir = '/tmp/meteor_lambda_' + (new Date()).toISOString();
+if (flags.get('debug')) {
+  tempDir = pwd() + '/lambda-bundle';
+}
+
+if (fs.existsSync(tempDir)) {
+  rm('-rf', tempDir);
+}
 
 
-
-var tempDir = '/tmp/mteor_lambda_' + (new Date()).toISOString();
 
 var exit = function(code, msg) {
   if (flags.get('upload')) {
@@ -45,9 +54,17 @@ var exit = function(code, msg) {
 };
 mkdir(tempDir);
 
-console.log('>> Building meteor app for Amazon Linux (meteor build --architecture os.linux.x86_64)');
+var buildCmd;
+if (flags.get('debug')) {
+  console.log('>> Debug is ON. Building meteor app for current architecture');
+  buildCmd = 'meteor build --directory ' + tempDir;
+} else {
+  console.log('>> Building meteor app for Amazon Linux (meteor build --architecture os.linux.x86_64)');
+  buildCmd = 'meteor build --architecture os.linux.x86_64 --directory ' + tempDir;
+}
 
-if (exec('meteor build --architecture os.linux.x86_64 --directory ' + tempDir).code !== 0) {
+
+if (exec(buildCmd).code !== 0) {
   exit(1, 'Meteor build failed'.red);
 }
 
@@ -63,31 +80,38 @@ cd(tempDir + '/bundle');
 console.log('>> Adding exec wrapper with environment variables & settings');
 
 
-var code = "exports.handler=function(event,context){process.exit=function(result){context.succeed(result);};process.argv.push(event);";
+var code = "exports.handler=function(event,context){var originalExit=process.exit;process.exit=function(result){context.succeed(result);originalExit.call(process, 0);};process.on('uncaughtException',function(err){context.fail(err);originalExit.call(process, 1);});process.argv.push(event);";
 
 // Add environment variables
 for (var k in ENV) {
   code += 'process.env["' + k + '"] = ' + JSON.stringify(ENV[k]) + ';';
 }
 
-code += "try{require('./main');}catch(err){context.fail(err);}};";
+code += "try{require('./main');}catch(err){context.fail(err);originalExit.call(process, 1);}};";
 fs.writeFileSync('exec.js', code);
 
-
-console.log('>> Bundling Lambda function');
-
-if (exec('zip -r lambda.zip . > /dev/null').code !== 0) {
-  exit(1, 'Archiving failed'.red);
+if (flags.get('debug')) {
+  fs.writeFileSync('debug.js', "var context = {succeed: function() {console.log('Execution succeeded:', arguments);},fail: function() {console.log('Execution failed:', arguments);}};var handler = require('./exec').handler;var evtData = null;if (process.argv.length > 2) {evtData = require('./' + process.argv[2]);}handler(evtData, context);");
+  console.log('>> Debug mode is ON. You can run `node debug.js` to test your application (argument is optional json file with event data). REMEMBER: if you build it again, `meteor build` will have errors unless you first remove the lambda-bundle directory.');
+  process.exit(0);
 }
+if (!flags.get('debug')) {
+  console.log('>> Bundling Lambda function');
 
-console.log('>> Zip archive is at %s/lambda.zip', tempDir);
-
-if (flags.get('upload')) {
-  console.log('>> Uploading archive to AWS');
-  if (exec('aws lambda update-function-code --function-name ' + flags.get('function') + ' --zip-file fileb://' + tempDir + '/bundle/lambda.zip').code !== 0) {
-    exit(1, 'Upload failed'.red);
+  if (exec('zip -r lambda.zip . > /dev/null').code !== 0) {
+    exit(1, 'Archiving failed'.red);
   }
-} else {
-  console.log('>> Upload flag is `false`, not uploading to AWS');
+
+  console.log('>> Zip archive is at %s/lambda.zip', tempDir);
+
+  if (flags.get('upload')) {
+    console.log('>> Uploading archive to AWS');
+    if (exec('aws lambda update-function-code --function-name ' + flags.get('function') + ' --zip-file fileb://' + tempDir + '/bundle/lambda.zip').code !== 0) {
+      exit(1, 'Upload failed'.red);
+    }
+  } else {
+    console.log('>> Upload flag is `false`, not uploading to AWS');
+  }
 }
+
 exit(0, 'All done!'.green);
