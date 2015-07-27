@@ -2,7 +2,7 @@ Use this to compile and upload a MeteorJS CLI application to AWS Lambda.
 
 # Installing
 ```bash
-$ npm install -g lambdify
+$ npm install -g meteor-lambdify
 ```
 
 # Prepping your Meteor App
