@@ -1,3 +1,9 @@
+## UPDATE:
+
+We've tried to use this in production and it doesn't really work. The problem is that Lambda keeps the node process running, and this relies on the boot process working the same every time. But, if your node process is still running, the files loaded with `require` are cached, so the process doesn't boot in the same way every time. We have moved to running a Meteor worker in AWS Elastic Beanstalk's worker tier.
+
+### USE THIS AT YOUR OWN RISK.
+
 Use this to compile and upload a MeteorJS CLI application to AWS Lambda.
 
 # Installing
